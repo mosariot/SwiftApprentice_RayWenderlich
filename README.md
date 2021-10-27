@@ -1,1 +1,1 @@
-Code Examples and Challenges for Ray Wenderlich's Book "Swift Apprentice"
+Code Examples and Challenges for Ray Wenderlich Book "Swift Apprentice"
