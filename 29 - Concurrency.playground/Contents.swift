@@ -1,5 +1,4 @@
 import UIKit
-import Foundation
 
 // CHAPTER CODE
 
@@ -124,6 +123,168 @@ Task {
 
 // Actors
 
+class Playlist {
+    
+    let title: String
+    let author: String
+    private(set) var songs: [String]
+    
+    init(title: String, author: String, songs: [String]) {
+        self.title = title
+        self.author = author
+        self.songs = songs
+    }
+    
+    func add(song: String) {
+        songs.append(song)
+    }
+    
+    func remove(song: String) {
+        guard !songs.isEmpty, let index = songs.firstIndex(of: song) else { return }
+        songs.remove(at: index)
+    }
+    
+    func move(song: String, from playlist: Playlist) {
+        playlist.remove(song: song)
+        add(song: song)
+    }
+    
+    func move(song: String, to playlist: Playlist) {
+        playlist.add(song: song)
+        remove(song: song)
+    }
+}
+
+// convert to actor ->
+
+actor PlaylistActor {
+
+    let title: String
+    let author: String
+    private(set) var songs: [String]
+
+    init(title: String, author: String, songs: [String]) {
+        self.title = title
+        self.author = author
+        self.songs = songs
+    }
+
+    func add(song: String) {
+        songs.append(song)
+    }
+
+    func remove(song: String) {
+        guard !songs.isEmpty, let index = songs.firstIndex(of: song) else { return }
+        songs.remove(at: index)
+    }
+
+    func move(song: String, from playlist: PlaylistActor) async {
+        await playlist.remove(song: song)
+        add(song: song)
+    }
+
+    func move(song: String, to playlist: PlaylistActor) async {
+        await playlist.add(song: song)
+        remove(song: song)
+    }
+}
+
+extension PlaylistActor: CustomStringConvertible {
+    nonisolated var description: String {
+        "\(title) by \(author)."
+    }
+}
+
+let favorites = PlaylistActor(title: "Favorite songs", author: "Cosmin", songs: ["Nothing else matters"])
+let partyPlaylist = PlaylistActor(title: "Party songs", author: "Ray", songs: ["Stairway to heaven"])
+Task {
+    await favorites.move(song: "Stairway to heaven", from: partyPlaylist)
+    await favorites.move(song: "Nothing else matters", to: partyPlaylist)
+    await print(favorites.songs)
+}
+
+print(favorites)
+
+// Sendable
+
+final class BasicPlaylist {
+    let title: String
+    let author: String
+    
+    init(title: String, author: String) {
+        self.title = title
+        self.author = author
+    }
+}
+
+extension BasicPlaylist: Sendable {}
+
+func execute(task: @escaping @Sendable () -> Void, with priority: TaskPriority? = nil) {
+    Task(priority: priority, operation: task)
+}
+
+@Sendable func showRandomNumber() {
+    let number = Int.random(in: 1...10)
+    print(number)
+}
+
+execute(task: showRandomNumber)
+
 // CHALLENGES
 
-// 1
+// 1 Safe teams
+
+actor Team {
+  let name: String
+  let stadium: String
+  private var players: [String]
+  
+  init(name: String, stadium: String, players: [String]) {
+    self.name = name
+    self.stadium = stadium
+    self.players = players
+  }
+  
+  private func add(player: String) {
+    players.append(player)
+  }
+  
+  private func remove(player: String) {
+    guard !players.isEmpty, let index = players.firstIndex(of: player) else {
+      return
+    }
+    players.remove(at: index)
+  }
+  
+  func buy(player: String, from team: Team) async {
+    await team.remove(player: player)
+    add(player: player)
+  }
+  
+  func sell(player: String, to team: Team) async {
+    await team.add(player: player)
+    remove(player: player)
+  }
+}
+
+// 2 Custom teams
+
+extension Team: CustomStringConvertible {
+    nonisolated var description: String {
+        "\(name) on \(stadium)."
+    }
+}
+
+// 3 Sendable teams
+
+final class BasicTeam {
+  let name: String
+  let stadium: String
+  
+  init(name: String, stadium: String) {
+    self.name = name
+    self.stadium = stadium
+  }
+}
+
+extension BasicTeam: Sendable {}
